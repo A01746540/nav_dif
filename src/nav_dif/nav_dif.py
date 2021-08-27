@@ -22,6 +22,8 @@ https://colab.research.google.com/drive/1NXPcRFgNzeJM7ADdUNO1slc0JVpWLzSF
 import numpy as np
 from fuzzy import *
 
+flagControl = "0"
+
 # CALIBRACION DE VARIABLES
 maxP = 200
 CI = [0, 0, maxP/4-40, maxP/4*2]
@@ -110,29 +112,51 @@ def controlDifuso(p0, l0):
 
 ###start ROS###
 def logic_dif(obstacle):
-	obstacleStr = str(obstacle.data)
-	separador = obstacleStr.find('-')
-	p0 = int(obstacleStr[:separador])
-	l0 = float(obstacleStr[(separador+1):])
-	centroidVLineal, centroidVAngular = controlDifuso(p0, l0)
-	centroidVLineal = (centroidVLineal-0.2)*0.3
-	centroidVAngular = centroidVAngular*0.2
-	twist = Twist()
-	twist.linear.x = centroidVLineal
-	twist.angular.z = centroidVAngular
-	cmd_vel_pub.publish(twist)
-	print("-----------------------------")
-	print("Pos Objeto: " + str(p0))
-	print("Dis Objeto: " + str(l0))
-	print("LefWV: " + str(centroidVLineal+centroidVAngular))
-	print("RitWV: " + str(centroidVLineal-centroidVAngular))
-	print("-----------------------------")
+	global flagControl
+	if(flagControl == "1"):
+		obstacleStr = str(obstacle.data)
+		separador = obstacleStr.find('-')
+		p0 = int(obstacleStr[:separador])
+		l0 = float(obstacleStr[(separador+1):])
+		if(p0 == 200):
+			twist = Twist()
+			twist.linear.x = 0.1
+			twist.angular.z = 0
+			cmd_vel_pub.publish(twist)
+		else:
+			centroidVLineal, centroidVAngular = controlDifuso(p0, l0)
+			centroidVLineal = (centroidVLineal-0.2)*0.3
+			centroidVAngular = centroidVAngular*0.2
+			twist = Twist()
+			twist.linear.x = centroidVLineal
+			twist.angular.z = centroidVAngular
+			cmd_vel_pub.publish(twist)
+			print("-----------------------------")
+			print("Pos Objeto: " + str(p0))
+			print("Dis Objeto: " + str(l0))
+			print("LefWV: " + str(centroidVLineal+centroidVAngular))
+			print("RitWV: " + str(centroidVLineal-centroidVAngular))
+			print("-----------------------------")
+	elif(flagControl == "0"):
+		twist = Twist()
+		twist.linear.x = 0
+		twist.angular.z = 0
+		cmd_vel_pub.publish(twist)
+
+def flag_control(flag):
+	global flagControl
+	flagStr = str(flag.data)
+	print(flagStr)
+	flagControl = flagStr
+	response.publish(flagControl)
 
 ###start ROS###
 cmd_vel_pub = rospy.Publisher("/cmd_vel", Twist, queue_size=1)
+response = rospy.Publisher("/hola", String, queue_size=1)
 def main():
 	rospy.init_node("nav_dif")
 	sub = rospy.Subscriber('/nav/obstacle',String, logic_dif)
-	rate = rospy.Rate(1)
+	flag_nav_auto = rospy.Subscriber('/flag/nav_auto',String, flag_control)
+	rate = rospy.Rate(5)
 	rospy.spin()
 ###end ROS###
