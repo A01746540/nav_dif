@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+from __future__ import division
 
 ###start ROS###
 import rospy
@@ -113,15 +113,20 @@ def logic_dif(obstacle):
 	obstacleStr = str(obstacle.data)
 	separador = obstacleStr.find('-')
 	p0 = int(obstacleStr[:separador])
-	l0 = int(obstacleStr[(separador+1):])
-	print("p0: " + str(p0) + " | l0: " + str(l0))
+	l0 = float(obstacleStr[(separador+1):])
 	centroidVLineal, centroidVAngular = controlDifuso(p0, l0)
-	print("lineal_vel: " + str(centroidVLineal) + " | angular_vel: " + str(centroidVAngular))
+	centroidVLineal = (centroidVLineal-0.2)*0.3
+	centroidVAngular = centroidVAngular*0.2
 	twist = Twist()
 	twist.linear.x = centroidVLineal
 	twist.angular.z = centroidVAngular
 	cmd_vel_pub.publish(twist)
-	print("------------------------------------------")
+	print("-----------------------------")
+	print("Pos Objeto: " + str(p0))
+	print("Dis Objeto: " + str(l0))
+	print("LefWV: " + str(centroidVLineal+centroidVAngular))
+	print("RitWV: " + str(centroidVLineal-centroidVAngular))
+	print("-----------------------------")
 
 ###start ROS###
 cmd_vel_pub = rospy.Publisher("/cmd_vel", Twist, queue_size=1)
